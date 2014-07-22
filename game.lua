@@ -1,0 +1,39 @@
+local ROT=require 'rotLove/rotLove'
+local game = {}
+
+-- private variables
+local _display
+local _currentScreen
+
+function game.init()
+    -- Any necessary initialization will go here.
+    _display = ROT.Display()
+end
+
+function game.getDisplay()
+    return _display
+end
+
+function game.switchScreen(screen)
+    -- If we had a screen before, notify it that we exited
+    if _currentScreen ~= nil then
+        _currentScreen.exit()
+    end
+    -- Clear the display
+    _display:clear()
+    -- Update our current screen, notify it we entered
+    -- and then render it
+    _currentScreen = screen
+    if _currentScreen ~= nil then
+        _currentScreen.enter()
+        _currentScreen.render(_display)
+    end
+end
+
+function game.handleInput(key)
+    if _currentScreen ~= nil then
+        _currentScreen.handleInput(key)
+    end
+end
+
+return game
