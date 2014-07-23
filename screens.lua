@@ -1,11 +1,15 @@
-local ROT=require 'rotLove/rotLove'
+local ROT=require 'lib/rotLove/rotLove/rotLove'
 local GAME=require 'game' 
 local TILE=require 'tile' 
 local MAP=require 'map' 
 
 local screens = {}
-local color = ROT.Color()
-local map = {}
+
+-- private variables
+local _color = ROT.Color()
+local _map = {}
+local _centerX = 0
+local _centerY = 0
 
 -- Define our initial start screen
 screens.startScreen = {}
@@ -20,7 +24,7 @@ end
 
 function screens.startScreen.render(display)
     -- Render our prompt to the screen
-    display:write("Javascript Roguelike",1,1, color:fromString("yellow"))
+    display:write("Javascript Roguelike",1,1, _color:fromString("yellow"))
     display:write("Press [Enter] to start!",1,2)
     display:write("j",80,24)
 end
@@ -39,15 +43,18 @@ function callback(x,y,v)
 end
 
 function screens.playScreen.enter()
-    local tiles = {}
-    for x = 1, 80 do
-        tiles[x] = {}
-        for y = 1, 24 do
-            tiles[x][y] = TILE.nullTile
+    local map = {}
+    -- Create a map based on our size parameters
+    local mapWidth = 80
+    local mapHeight = 24
+    for x = 1, mapWidth do
+        map[x] = {}
+        for y = 1, mapHeight do
+            map[x][y] = TILE.nullTile
         end
     end
     -- Setup the map generator
-    local generator = ROT.Map.Cellular:new(80,24)
+    local generator = ROT.Map.Cellular:new(mapWidth, mapHeight)
     generator:randomize(0.5)
     local totalIterations = 2
     -- Iteratively smoothen the map
@@ -57,14 +64,27 @@ function screens.playScreen.enter()
     -- Smoothen it one last time and then update our map
     generator:create(function(x,y,v) 
         if v == 1 then
-            tiles[x][y] = TILE.floorTile
+            map[x][y] = TILE.floorTile
         else
-            tiles[x][y] = TILE.wallTile
+            map[x][y] = TILE.wallTile
         end       
     end)
     -- Create our map from the tiles
-    map = MAP.new(tiles);    
+    _map = MAP.new(map);    
 end
+
+function screens.playScreen.move(dX, dY)
+    -- Positive dX means movement right
+    -- negative means movement left
+    -- 0 means none
+    _centerX = math.max(1,
+        math.min(_map.getWidth() - 1, _centerX + dx))
+    -- Positive dY means movement down
+    -- negative means movement up
+    -- 0 means none
+    _centerY = math.max(1,
+        math.min(_map.getHeight() - 1, _centerY + dY))
+ end
 
 function screens.playScreen.exit()
     print("Exited play screen.")
@@ -72,15 +92,15 @@ end
 
 function screens.playScreen.render(display)
     -- Iterate through all map cells
-    for x = 1, map:getWidth() do
-        for y = 1, map:getHeight() do
+    for x = 1, _map:getWidth() do
+        for y = 1, _map:getHeight() do
             -- Fetch the glyph for the tile and render it to the screen
-            local glyph = map:getTile(x, y):getGlyph()
+            local glyph = _map:getTile(x, y):getGlyph()
             display:write(
                 glyph:getChar(),
                 x, y,
-                color:fromString(glyph:getForeground()), 
-                color:fromString(glyph:getBackground()))
+                _color:fromString(glyph:getForeground()), 
+                _color:fromString(glyph:getBackground()))
         end
     end
 end
@@ -134,7 +154,7 @@ end
 function screens.loseScreen.render(display)
     -- Render our prompt to the screen
     for i=2,23 do
-        display:write("You lose! :(",3,i,nil,color:fromString("red"))
+        display:write("You lose! :(",3,i,nil,_color:fromString("red"))
     end
 end
 

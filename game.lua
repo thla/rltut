@@ -1,18 +1,21 @@
-local ROT=require 'rotLove/rotLove'
+local ROT=require 'lib/rotLove/rotLove/rotLove'
 local game = {}
 
 -- private variables
 local _display
 local _currentScreen
+local _screenWidth = 80
+local _screenHeight = 24
 
 function game.init()
     -- Any necessary initialization will go here.
-    _display = ROT.Display()
+    _display = ROT.Display(_screenWidth, _screenHeight)
 end
 
 function game.getDisplay()
     return _display
 end
+
 
 function game.switchScreen(screen)
     -- If we had a screen before, notify it that we exited
@@ -30,10 +33,21 @@ function game.switchScreen(screen)
     end
 end
 
+
 function game.handleInput(key)
     if _currentScreen ~= nil then
         _currentScreen.handleInput(key)
     end
+end
+
+
+function game.getScreenWidth()
+    return _screenWidth
+end
+
+
+function game.getScreenHeight()
+    return _screenHeight
 end
 
 return game
