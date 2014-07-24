@@ -23,7 +23,7 @@ function game.switchScreen(screen)
         _currentScreen.exit()
     end
     -- Clear the display
-    _display:clear()
+    _display:clearCanvas()
     -- Update our current screen, notify it we entered
     -- and then render it
     _currentScreen = screen
@@ -34,9 +34,14 @@ function game.switchScreen(screen)
 end
 
 
-function game.handleInput(key)
+function game.handleInput(key, isrepeat)
     if _currentScreen ~= nil then
-        _currentScreen.handleInput(key)
+        -- Send the event type and data to the screen
+        _currentScreen.handleInput(key, isrepeat)
+        -- Clear the screen
+        _display:clear()
+        -- Render the screen
+        _currentScreen.render(_display)
     end
 end
 

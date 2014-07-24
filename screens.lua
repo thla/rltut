@@ -26,11 +26,10 @@ function screens.startScreen.render(display)
     -- Render our prompt to the screen
     display:write("Javascript Roguelike",1,1, _color:fromString("yellow"))
     display:write("Press [Enter] to start!",1,2)
-    display:write("j",80,24)
 end
     
-function screens.startScreen.handleInput(key)
-    if key == "return" then
+function screens.startScreen.handleInput(key, isrepeat)
+    if not isrepeat and key == "return" then
         GAME.switchScreen(screens.playScreen)
     end
 end
@@ -38,15 +37,11 @@ end
 -- Define our playing screen
 screens.playScreen = {}
 
-function callback(x,y,v)
-  
-end
-
 function screens.playScreen.enter()
     local map = {}
     -- Create a map based on our size parameters
-    local mapWidth = 80
-    local mapHeight = 24
+    local mapWidth = 100
+    local mapHeight = 100
     for x = 1, mapWidth do
         map[x] = {}
         for y = 1, mapHeight do
@@ -77,13 +72,13 @@ function screens.playScreen.move(dX, dY)
     -- Positive dX means movement right
     -- negative means movement left
     -- 0 means none
-    _centerX = math.max(1,
-        math.min(_map.getWidth() - 1, _centerX + dx))
+    _centerX = math.max(0,
+        math.min(_map:getWidth() - 1, _centerX + dX))
     -- Positive dY means movement down
     -- negative means movement up
     -- 0 means none
-    _centerY = math.max(1,
-        math.min(_map.getHeight() - 1, _centerY + dY))
+    _centerY = math.max(0,
+        math.min(_map:getHeight() - 1, _centerY + dY))
  end
 
 function screens.playScreen.exit()
@@ -91,27 +86,58 @@ function screens.playScreen.exit()
 end
 
 function screens.playScreen.render(display)
+    local screenWidth = GAME.getScreenWidth()
+    local screenHeight = GAME.getScreenHeight()
+    -- Make sure the x-axis doesn't go to the left of the left bound
+    local topLeftX = math.max(0, _centerX - (screenWidth / 2))
+    -- Make sure we still have enough space to fit an entire game screen
+    topLeftX = math.min(topLeftX, _map:getWidth() - screenWidth)
+    -- Make sure the y-axis doesn't above the top bound
+    local topLeftY = math.max(0, _centerY - (screenHeight / 2))
+    -- Make sure we still have enough space to fit an entire game screen
+    topLeftY = math.min(topLeftY, _map:getHeight() - screenHeight)
+    
     -- Iterate through all map cells
-    for x = 1, _map:getWidth() do
-        for y = 1, _map:getHeight() do
+    for x = topLeftX, topLeftX + screenWidth - 1 do
+        for y = topLeftY, topLeftY + screenHeight - 1 do
             -- Fetch the glyph for the tile and render it to the screen
-            local glyph = _map:getTile(x, y):getGlyph()
+            local glyph = _map:getTile(x + 1, y + 1):getGlyph()
             display:write(
                 glyph:getChar(),
-                x, y,
+                x - topLeftX + 1, 
+                y - topLeftY + 1,
                 _color:fromString(glyph:getForeground()), 
                 _color:fromString(glyph:getBackground()))
         end
     end
+    -- Render the cursor
+    display:write(
+        '@',
+        _centerX - topLeftX + 1, 
+        _centerY - topLeftY + 1,
+        _color:fromString('white'),
+        _color:fromString('black'))
 end
 
-function screens.playScreen.handleInput(key)
+function screens.playScreen.handleInput(key, isrepeat)
     -- If enter is pressed, go to the win screen
     -- If escape is pressed, go to lose screen
-    if key == "return" then
-        GAME.switchScreen(screens.winScreen)
-    elseif key == "escape" then
-        GAME.switchScreen(screens.loseScreen)
+    if not isrepeat then
+        if key == "return" then
+            GAME.switchScreen(screens.winScreen)
+        elseif key == "escape" then
+            GAME.switchScreen(screens.loseScreen)
+        end
+    end
+    -- Movement
+    if key == "left" then
+        screens.playScreen.move(-1, 0)
+    elseif key == "right" then
+        screens.playScreen.move(1, 0)
+    elseif key == "up" then
+        screens.playScreen.move(0, -1)
+    elseif key == "down" then
+        screens.playScreen.move(0, 1)
     end
 end
 
@@ -135,7 +161,7 @@ function screens.winScreen.render(display)
     end
 end
 
-function screens.winScreen.handleInput(key)
+function screens.winScreen.handleInput(key, isrepeat)
     -- Nothing to do here 
 end
 
@@ -158,7 +184,7 @@ function screens.loseScreen.render(display)
     end
 end
 
-function screens.loseScreen.handleInput(key)
+function screens.loseScreen.handleInput(key, isrepeat)
     -- Nothing to do here 
 end
 
