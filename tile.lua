@@ -1,21 +1,32 @@
-local GLYPH=require 'glyph'
-local tile = {}
+local class=require 'middleclass'
+local Glyph=require 'Glyph'
 
-tile.__index = tile -- failed table lookups on the instances should fallback to the class table, to get methods
+local Tile = class('Tile', Glyph)
 
--- syntax equivalent to "tile.new = function..."
-function tile.new(glyph)
-  local self = setmetatable({}, tile)
-  self.glyph = glyph
-  return self
+function Tile:initialize(properties)
+  Glyph.initialize(self, properties)
+  properties = properties or {}
+  self._isWalkable = properties.isWalkable or false
+  self._isDiggable = properties.isDiggable or false
 end
 
-function tile.getGlyph(self)
-  return self.glyph
+function Tile:isWalkable()
+  return self._isWalkable
 end
 
-tile.nullTile = tile.new(GLYPH.new())
-tile.floorTile = tile.new(GLYPH.new('.'))
-tile.wallTile = tile.new(GLYPH.new('#', 'goldenrod'))
+function Tile:isDiggable()
+  return self._isDiggable
+end
 
-return tile
+Tile.static.nullTile = Tile:new()
+Tile.static.floorTile = Tile:new({
+    character = '.',
+    isWalkable = true
+    })
+Tile.static.wallTile = Tile:new({
+    character = '#',
+    foreground = 'goldenrod',
+    isDiggable = true
+    })
+
+return Tile

@@ -1,25 +1,26 @@
-local glyph = {}
-glyph.__index = glyph -- failed table lookups on the instances should fallback to the class table, to get methods
+local class = require 'middleclass'
 
--- syntax equivalent to "glyph.new = function..."
-function glyph.new(chr, fg, bg)
-  local self = setmetatable({}, glyph)
-  self.chr = chr or ' '
-  self.fg = fg or 'white'
-  self.bg = bg or 'black'
-  return self
+local Glyph = class('Glyph')
+
+-- syntax equivalent to "Glyph.new = function..."
+function Glyph:initialize(properties)
+  -- Instantiate properties to default if they weren't passed
+  properties = properties or {}
+  self._char = properties.character or ' '
+  self._foreground = properties.foreground or 'white'
+  self._background = properties.background or 'black'
 end
 
-function glyph.getChar(self)
-  return self.chr
+function Glyph:getChar()
+  return self._char
 end
 
-function glyph.getBackground(self)
-  return self.bg
+function Glyph:getBackground()
+  return self._background
 end
 
-function glyph.getForeground(self)
-  return self.fg
+function Glyph:getForeground()
+  return self._foreground
 end
 
-return glyph
+return Glyph

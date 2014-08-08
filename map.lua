@@ -1,32 +1,71 @@
-local TILE=require 'tile' 
-local map = {}
+local rot=require 'lib/rotLove/rotLove/rotLove'
+local class=require 'middleclass'
+local Tile=require 'Tile'
 
-map.__index = map -- failed table lookups on the instances should fallback to the class table, to get methods
+local Map = class('Map')
 
--- syntax equivalent to "map.new = function..."
-function map.new(tiles)
-  local self = setmetatable({}, map)
-  self.tiles = tiles
-  self.width = #tiles
-  self.height = #tiles[1]
-  return self
+function Map:initialize(tiles)
+  self._tiles = tiles
+  self._width = #tiles
+  self._height = #tiles[1]
+  -- create a list which will hold the entities
+  self._entities = {}
+  -- create the engine and scheduler
+  self._scheduler = rot.Scheduler.Simple()
+  self._engine = rot.Engine(self._scheduler)
 end
 
-function map.getWidth(self)
-  return self.width
+function Map:getEngine()
+  return self._engine
 end
 
-function map.getHeight(self)
-  return self.height
+function Map:getEntities()
+  return self._entities
 end
 
-function map.getTile(self, x, y)
-    -- Make sure we are inside the bounds. If we aren't, return null tile.
-    if x < 1 or x > self.width or y < 1 or y > self.height then
-        return TILE.nullTile
+function Map:getWidth()
+  return self._width
+end
+
+function Map:getHeight()
+  return self._height
+end
+
+function Map:dig(x, y)
+  -- If the tile is diggable, update it to a floor
+  if self:getTile(x, y):isDiggable() then
+    self._tiles[x][y] = Tile.floorTile
+  end
+end
+
+function Map:getRandomFloorPosition()
+    -- Randomly generate a tile which is a floor
+    local x, y
+
+    repeat
+        x = math.random(1, self._width)
+        y = math.random(1, self._height)
+    until self:getTile(x, y) ~= Tile.floorTile
+    return {x= x, y= y}
+end
+
+
+function Map:getTile(x, y)
+    -- Make sure we are inside the bounds. If we aren't, return null Tile.
+    if x < 1 or x > self._width or y < 1 or y > self._height then
+        return Tile.nullTile
     else
-        return self.tiles[x][y] or TILE.nullTile
+        return self._tiles[x][y] or Tile.nullTile
     end
 end
 
-return map
+function Map:getEntityAt(x, y)
+    -- Iterate through all entities searching for one with
+    -- matching position
+    for _,v in ipairs(self._entities) do
+        if v.getX() == x and v.getY() == y then return v end
+    end
+    return nil
+end
+
+return Map

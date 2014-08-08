@@ -1,4 +1,4 @@
-local ROT=require 'lib/rotLove/rotLove/rotLove'
+local rot=require 'lib/rotLove/rotLove/rotLove'
 local game = {}
 
 -- private variables
@@ -9,7 +9,7 @@ local _screenHeight = 24
 
 function game.init()
     -- Any necessary initialization will go here.
-    _display = ROT.Display(_screenWidth, _screenHeight)
+    _display = rot.Display(_screenWidth, _screenHeight)
 end
 
 function game.getDisplay()

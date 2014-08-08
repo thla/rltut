@@ -1,15 +1,17 @@
-local ROT=require 'lib/rotLove/rotLove/rotLove'
-local GAME=require 'game' 
-local TILE=require 'tile' 
-local MAP=require 'map' 
+local rot=require 'lib/rotLove/rotLove/rotLove'
+local game=require 'game'
+local Tile=require 'Tile'
+local Map=require 'Map'
+local Entity=require 'Entity'
+local entities=require 'entities'
+
 
 local screens = {}
 
 -- private variables
-local _color = ROT.Color()
+local _color = rot.Color()
 local _map = {}
-local _centerX = 0
-local _centerY = 0
+local _player
 
 -- Define our initial start screen
 screens.startScreen = {}
@@ -27,10 +29,10 @@ function screens.startScreen.render(display)
     display:write("Javascript Roguelike",1,1, _color:fromString("yellow"))
     display:write("Press [Enter] to start!",1,2)
 end
-    
+
 function screens.startScreen.handleInput(key, isrepeat)
     if not isrepeat and key == "return" then
-        GAME.switchScreen(screens.playScreen)
+        game.switchScreen(screens.playScreen)
     end
 end
 
@@ -38,18 +40,20 @@ end
 screens.playScreen = {}
 
 function screens.playScreen.enter()
+    if arg[#arg] == "-debug" then require("mobdebug").off() end
+
     local map = {}
     -- Create a map based on our size parameters
-    local mapWidth = 100
-    local mapHeight = 100
+    local mapWidth = 250
+    local mapHeight = 250
     for x = 1, mapWidth do
         map[x] = {}
         for y = 1, mapHeight do
-            map[x][y] = TILE.nullTile
+            map[x][y] = Tile.nullTile
         end
     end
     -- Setup the map generator
-    local generator = ROT.Map.Cellular:new(mapWidth, mapHeight)
+    local generator = rot.Map.Cellular:new(mapWidth, mapHeight)
     generator:randomize(0.5)
     local totalIterations = 2
     -- Iteratively smoothen the map
@@ -57,28 +61,31 @@ function screens.playScreen.enter()
         generator:create()
     end
     -- Smoothen it one last time and then update our map
-    generator:create(function(x,y,v) 
+    generator:create(function(x,y,v)
         if v == 1 then
-            map[x][y] = TILE.floorTile
+            map[x][y] = Tile.floorTile
         else
-            map[x][y] = TILE.wallTile
-        end       
+            map[x][y] = Tile.wallTile
+        end
     end)
     -- Create our map from the tiles
-    _map = MAP.new(map);    
+    _map = Map:new(map);
+    if arg[#arg] == "-debug" then require("mobdebug").on() end
+    -- Create our player and set the position
+    _player = Entity:new(entities.PlayerTemplate)
+    local position = _map:getRandomFloorPosition()
+    _player:setX(position.x)
+    _player:setY(position.y)
 end
 
 function screens.playScreen.move(dX, dY)
     -- Positive dX means movement right
     -- negative means movement left
     -- 0 means none
-    _centerX = math.max(0,
-        math.min(_map:getWidth() - 1, _centerX + dX))
-    -- Positive dY means movement down
-    -- negative means movement up
-    -- 0 means none
-    _centerY = math.max(0,
-        math.min(_map:getHeight() - 1, _centerY + dY))
+    local newX = _player:getX() + dX
+    local newY = _player:getY() + dY
+    -- Try to move to the new cell
+    _player:tryMove(newX, newY, _map)
  end
 
 function screens.playScreen.exit()
@@ -86,37 +93,38 @@ function screens.playScreen.exit()
 end
 
 function screens.playScreen.render(display)
-    local screenWidth = GAME.getScreenWidth()
-    local screenHeight = GAME.getScreenHeight()
+    local screenWidth = game.getScreenWidth()
+    local screenHeight = game.getScreenHeight()
     -- Make sure the x-axis doesn't go to the left of the left bound
-    local topLeftX = math.max(0, _centerX - (screenWidth / 2))
+    local topLeftX = math.max(0, _player:getX() - (screenWidth / 2))
     -- Make sure we still have enough space to fit an entire game screen
     topLeftX = math.min(topLeftX, _map:getWidth() - screenWidth)
     -- Make sure the y-axis doesn't above the top bound
-    local topLeftY = math.max(0, _centerY - (screenHeight / 2))
+    local topLeftY = math.max(0, _player:getY() - (screenHeight / 2))
     -- Make sure we still have enough space to fit an entire game screen
     topLeftY = math.min(topLeftY, _map:getHeight() - screenHeight)
-    
+
     -- Iterate through all map cells
     for x = topLeftX, topLeftX + screenWidth - 1 do
         for y = topLeftY, topLeftY + screenHeight - 1 do
             -- Fetch the glyph for the tile and render it to the screen
-            local glyph = _map:getTile(x + 1, y + 1):getGlyph()
+            -- at the offset position.
+            local tile = _map:getTile(x + 1, y + 1)
             display:write(
-                glyph:getChar(),
-                x - topLeftX + 1, 
+                tile:getChar(),
+                x - topLeftX + 1,
                 y - topLeftY + 1,
-                _color:fromString(glyph:getForeground()), 
-                _color:fromString(glyph:getBackground()))
+                _color:fromString(tile:getForeground()),
+                _color:fromString(tile:getBackground()))
         end
     end
-    -- Render the cursor
+    -- Render the player
     display:write(
-        '@',
-        _centerX - topLeftX + 1, 
-        _centerY - topLeftY + 1,
-        _color:fromString('white'),
-        _color:fromString('black'))
+        _player:getChar(),
+        _player:getX() - topLeftX,
+        _player:getY() - topLeftY,
+        _color:fromString(_player:getForeground()),
+        _color:fromString(_player:getBackground()))
 end
 
 function screens.playScreen.handleInput(key, isrepeat)
@@ -124,9 +132,9 @@ function screens.playScreen.handleInput(key, isrepeat)
     -- If escape is pressed, go to lose screen
     if not isrepeat then
         if key == "return" then
-            GAME.switchScreen(screens.winScreen)
+            game.switchScreen(screens.winScreen)
         elseif key == "escape" then
-            GAME.switchScreen(screens.loseScreen)
+            game.switchScreen(screens.loseScreen)
         end
     end
     -- Movement
@@ -162,7 +170,7 @@ function screens.winScreen.render(display)
 end
 
 function screens.winScreen.handleInput(key, isrepeat)
-    -- Nothing to do here 
+    -- Nothing to do here
 end
 
 
@@ -185,7 +193,7 @@ function screens.loseScreen.render(display)
 end
 
 function screens.loseScreen.handleInput(key, isrepeat)
-    -- Nothing to do here 
+    -- Nothing to do here
 end
 
 
