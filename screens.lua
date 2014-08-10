@@ -68,14 +68,13 @@ function screens.playScreen.enter()
             map[x][y] = Tile.wallTile
         end
     end)
-    -- Create our map from the tiles
-    _map = Map:new(map);
-    if arg[#arg] == "-debug" then require("mobdebug").on() end
     -- Create our player and set the position
     _player = Entity:new(entities.PlayerTemplate)
-    local position = _map:getRandomFloorPosition()
-    _player:setX(position.x)
-    _player:setY(position.y)
+    -- Create our map from the tiles
+    _map = Map:new(map, _player)
+    -- Start the map's engine
+    if arg[#arg] == "-debug" then require("mobdebug").on() end
+    _map:getEngine():start()
 end
 
 function screens.playScreen.move(dX, dY)
@@ -118,14 +117,23 @@ function screens.playScreen.render(display)
                 _color:fromString(tile:getBackground()))
         end
     end
-    -- Render the player
-    display:write(
-        _player:getChar(),
-        _player:getX() - topLeftX,
-        _player:getY() - topLeftY,
-        _color:fromString(_player:getForeground()),
-        _color:fromString(_player:getBackground()))
+
+    -- Render the entities
+    for _, entity in ipairs(_map:getEntities()) do
+        -- Only render the entitiy if they would show up on the screen
+        if entity:getX() >= topLeftX and entity:getY() >= topLeftY and
+            entity:getX() < topLeftX + screenWidth and
+            entity:getY() < topLeftY + screenHeight then
+            display:write(
+                entity:getChar(),
+                entity:getX() - topLeftX + 1,
+                entity:getY() - topLeftY + 1,
+                _color:fromString(entity:getForeground()),
+                _color:fromString(entity:getBackground()))
+        end
+    end
 end
+
 
 function screens.playScreen.handleInput(key, isrepeat)
     -- If enter is pressed, go to the win screen
@@ -147,6 +155,8 @@ function screens.playScreen.handleInput(key, isrepeat)
     elseif key == "down" then
         screens.playScreen.move(0, 1)
     end
+    -- Unlock the engine
+    _map:getEngine():unlock()
 end
 
 

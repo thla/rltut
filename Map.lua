@@ -1,18 +1,27 @@
 local rot=require 'lib/rotLove/rotLove/rotLove'
 local class=require 'middleclass'
 local Tile=require 'Tile'
+local Entity=require 'Entity'
+local entities=require 'entities'
 
 local Map = class('Map')
 
-function Map:initialize(tiles)
+function Map:initialize(tiles, player)
   self._tiles = tiles
   self._width = #tiles
   self._height = #tiles[1]
   -- create a list which will hold the entities
   self._entities = {}
   -- create the engine and scheduler
-  self._scheduler = rot.Scheduler.Simple()
+  self._scheduler = rot.Scheduler:Simple()
   self._engine = rot.Engine(self._scheduler)
+  -- add the player
+  self:addEntityAtRandomPosition(player);
+  -- add random fungi
+  for i = 1, 10 do
+    self:addEntityAtRandomPosition(Entity:new(entities.FungusTemplate));
+  end
+
 end
 
 function Map:getEngine()
@@ -45,7 +54,7 @@ function Map:getRandomFloorPosition()
     repeat
         x = math.random(1, self._width)
         y = math.random(1, self._height)
-    until self:getTile(x, y) ~= Tile.floorTile
+    until self:getTile(x, y) ~= Tile.floorTile or self:getEntityAt(x, y)
     return {x= x, y= y}
 end
 
@@ -59,13 +68,40 @@ function Map:getTile(x, y)
     end
 end
 
+
 function Map:getEntityAt(x, y)
     -- Iterate through all entities searching for one with
     -- matching position
     for _,v in ipairs(self._entities) do
-        if v.getX() == x and v.getY() == y then return v end
+        if v:getX() == x and v:getY() == y then return v end
     end
     return nil
+end
+
+
+function Map:addEntity(entity)
+    -- Make sure the entity's position is within bounds
+    if entity:getX() <= 0 or entity:getX() > self._width or
+        entity:getY() <= 0 or entity:getY() > self._height then
+        error('Adding entity out of bounds.')
+    end
+    -- Update the entity's map
+    entity:setMap()
+    -- Add the entity to the list of entities
+    table.insert(self._entities, entity)
+    -- Check if self entity is an actor, and if so add
+    -- them to the scheduler
+    if entity:hasMixin('Actor') then
+       self._scheduler:add(entity, true)
+    end
+end
+
+
+function Map:addEntityAtRandomPosition(entity)
+    local position = self:getRandomFloorPosition()
+    entity:setX(position.x)
+    entity:setY(position.y)
+    self:addEntity(entity)
 end
 
 return Map

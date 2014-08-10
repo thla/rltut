@@ -2,8 +2,8 @@ local rot=require 'lib/rotLove/rotLove/rotLove'
 local game = {}
 
 -- private variables
-local _display
-local _currentScreen
+local _display = nil
+local _currentScreen = nil
 local _screenWidth = 80
 local _screenHeight = 24
 
@@ -29,7 +29,7 @@ function game.switchScreen(screen)
     _currentScreen = screen
     if _currentScreen ~= nil then
         _currentScreen.enter()
-        _currentScreen.render(_display)
+        game.refresh()
     end
 end
 
@@ -38,11 +38,15 @@ function game.handleInput(key, isrepeat)
     if _currentScreen ~= nil then
         -- Send the event type and data to the screen
         _currentScreen.handleInput(key, isrepeat)
-        -- Clear the screen
-        _display:clear()
-        -- Render the screen
-        _currentScreen.render(_display)
     end
+end
+
+
+function game.refresh()
+    -- Clear the screen
+    _display:clear()
+    -- Render the screen
+    _currentScreen.render(_display)
 end
 
 

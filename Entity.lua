@@ -10,6 +10,7 @@ function Entity:initialize(properties)
     self._name = properties.name or ' '
     self._x = properties.x or 0
     self._y = properties.y or 0
+    self._map = nil
     -- Create an object which will keep track what mixins we have
     -- attached to this entity based on the name property
     self._attachedMixins = {}
@@ -73,6 +74,14 @@ end
 
 function Entity:getY()
   return self._y
+end
+
+function Entity:setMap(map)
+  self._map = map
+end
+
+function Entity:getMap()
+  return self._map
 end
 
 return Entity
