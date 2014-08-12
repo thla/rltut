@@ -73,8 +73,8 @@ function screens.playScreen.enter()
     -- Create our map from the tiles
     _map = Map:new(map, _player)
     -- Start the map's engine
-    if arg[#arg] == "-debug" then require("mobdebug").on() end
     _map:getEngine():start()
+    if arg[#arg] == "-debug" then require("mobdebug").on() end
 end
 
 function screens.playScreen.move(dX, dY)
@@ -108,7 +108,7 @@ function screens.playScreen.render(display)
         for y = topLeftY, topLeftY + screenHeight - 1 do
             -- Fetch the glyph for the tile and render it to the screen
             -- at the offset position.
-            local tile = _map:getTile(x + 1, y + 1)
+            local tile = _map:getTile(x, y)
             display:write(
                 tile:getChar(),
                 x - topLeftX + 1,

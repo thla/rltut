@@ -18,7 +18,7 @@ function Map:initialize(tiles, player)
   -- add the player
   self:addEntityAtRandomPosition(player);
   -- add random fungi
-  for i = 1, 10 do
+  for i = 1, 1000 do
     self:addEntityAtRandomPosition(Entity:new(entities.FungusTemplate));
   end
 
@@ -86,7 +86,7 @@ function Map:addEntity(entity)
         error('Adding entity out of bounds.')
     end
     -- Update the entity's map
-    entity:setMap()
+    entity:setMap(self)
     -- Add the entity to the list of entities
     table.insert(self._entities, entity)
     -- Check if self entity is an actor, and if so add

@@ -34,12 +34,12 @@ end
 mixins.PlayerActor = {
     name = 'PlayerActor',
     groupName = 'Actor',
-    act = function()
+    act = function(self)
         -- Re-render the screen
-        -- game.refresh()
+        game.refresh()
         -- Lock the engine and wait asynchronously
         -- for the player to press a key.
-        -- map:getEngine():lock()
+        self:getMap():getEngine():lock()
     end
 }
 
