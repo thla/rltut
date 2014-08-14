@@ -35,14 +35,14 @@ function Entity:initialize(properties)
         end
         -- Finally call the init function if there is one
         if mixin.init then
-            mixin.init(properties)
+            mixin.init(self, properties)
         end
     end
 end
 
 function Entity:hasMixin(obj)
   -- Allow passing the mixin itself or the name / group name as a string
-    local _type = type(var);
+    local _type = type(obj);
     if _type == "table" then
       return self._attachedMixins[obj.name]
     else

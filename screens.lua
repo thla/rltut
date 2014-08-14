@@ -44,8 +44,8 @@ function screens.playScreen.enter()
 
     local map = {}
     -- Create a map based on our size parameters
-    local mapWidth = 250
-    local mapHeight = 250
+    local mapWidth = 100
+    local mapHeight = 48
     for x = 1, mapWidth do
         map[x] = {}
         for y = 1, mapHeight do
@@ -68,13 +68,13 @@ function screens.playScreen.enter()
             map[x][y] = Tile.wallTile
         end
     end)
+    if arg[#arg] == "-debug" then require("mobdebug").on() end
     -- Create our player and set the position
     _player = Entity:new(entities.PlayerTemplate)
     -- Create our map from the tiles
     _map = Map:new(map, _player)
     -- Start the map's engine
     _map:getEngine():start()
-    if arg[#arg] == "-debug" then require("mobdebug").on() end
 end
 
 function screens.playScreen.move(dX, dY)
@@ -104,15 +104,15 @@ function screens.playScreen.render(display)
     topLeftY = math.min(topLeftY, _map:getHeight() - screenHeight)
 
     -- Iterate through all map cells
-    for x = topLeftX, topLeftX + screenWidth - 1 do
-        for y = topLeftY, topLeftY + screenHeight - 1 do
+    for x = topLeftX + 1, topLeftX + screenWidth do
+        for y = topLeftY + 1, topLeftY + screenHeight do
             -- Fetch the glyph for the tile and render it to the screen
             -- at the offset position.
             local tile = _map:getTile(x, y)
             display:write(
                 tile:getChar(),
-                x - topLeftX + 1,
-                y - topLeftY + 1,
+                x - topLeftX,
+                y - topLeftY,
                 _color:fromString(tile:getForeground()),
                 _color:fromString(tile:getBackground()))
         end
@@ -121,13 +121,13 @@ function screens.playScreen.render(display)
     -- Render the entities
     for _, entity in ipairs(_map:getEntities()) do
         -- Only render the entitiy if they would show up on the screen
-        if entity:getX() >= topLeftX and entity:getY() >= topLeftY and
-            entity:getX() < topLeftX + screenWidth and
-            entity:getY() < topLeftY + screenHeight then
+        if entity:getX() > topLeftX and entity:getY() > topLeftY and
+            entity:getX() <= topLeftX + screenWidth and
+            entity:getY() <= topLeftY + screenHeight then
             display:write(
                 entity:getChar(),
-                entity:getX() - topLeftX + 1,
-                entity:getY() - topLeftY + 1,
+                entity:getX() - topLeftX,
+                entity:getY() - topLeftY,
                 _color:fromString(entity:getForeground()),
                 _color:fromString(entity:getBackground()))
         end

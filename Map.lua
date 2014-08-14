@@ -18,7 +18,7 @@ function Map:initialize(tiles, player)
   -- add the player
   self:addEntityAtRandomPosition(player);
   -- add random fungi
-  for i = 1, 1000 do
+  for i = 1, 50 do
     self:addEntityAtRandomPosition(Entity:new(entities.FungusTemplate));
   end
 
@@ -54,7 +54,7 @@ function Map:getRandomFloorPosition()
     repeat
         x = math.random(1, self._width)
         y = math.random(1, self._height)
-    until self:getTile(x, y) ~= Tile.floorTile or self:getEntityAt(x, y)
+    until self:isEmptyFloor(x, y)
     return {x= x, y= y}
 end
 
@@ -102,6 +102,25 @@ function Map:addEntityAtRandomPosition(entity)
     entity:setX(position.x)
     entity:setY(position.y)
     self:addEntity(entity)
+end
+
+function Map:removeEntity(entity)
+    -- Find the entity in the list of entities if it is present
+    for  i = 1, #self._entities do
+        if self._entities[i] == entity then
+            table.remove(self._entities, i)
+            break
+        end
+    end
+    -- If the entity is an actor, remove them from the scheduler
+    if entity:hasMixin('Actor') then
+        self._scheduler:remove(entity)
+    end
+end
+
+function Map:isEmptyFloor(x, y)
+    -- Check if the tile is floor and also has no entity
+    return self:getTile(x, y) == Tile.floorTile and self:getEntityAt(x, y) == nil
 end
 
 return Map
