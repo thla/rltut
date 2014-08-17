@@ -9,7 +9,7 @@ local _screenHeight = 24
 
 function game.init()
     -- Any necessary initialization will go here.
-    _display = rot.Display(_screenWidth, _screenHeight)
+    _display = rot.Display(_screenWidth, _screenHeight + 1)
 end
 
 function game.getDisplay()

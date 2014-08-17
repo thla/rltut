@@ -106,7 +106,7 @@ end
 
 function Map:removeEntity(entity)
     -- Find the entity in the list of entities if it is present
-    for  i = 1, #self._entities do
+    for  i = 1, #(self._entities) do
         if self._entities[i] == entity then
             table.remove(self._entities, i)
             break
@@ -122,5 +122,23 @@ function Map:isEmptyFloor(x, y)
     -- Check if the tile is floor and also has no entity
     return self:getTile(x, y) == Tile.floorTile and self:getEntityAt(x, y) == nil
 end
+
+function Map:getEntitiesWithinRadius(centerX, centerY, radius)
+	local results = {}
+    local leftX = centerX - radius
+    local rightX = centerX + radius
+    local topY = centerY - radius
+    local bottomY = centerY + radius
+    -- Iterate through our entities, adding any which are within the bounds
+    for i = 1, #self._entities do
+        if (self._entities[i]:getX() >= leftX and
+            self._entities[i]:getX() <= rightX and 
+            self._entities[i]:getY() >= topY and
+            self._entities[i]:getY() <= bottomY) then
+            table.insert(results, self._entities[i])
+        end
+    end
+    return results
+end	
 
 return Map

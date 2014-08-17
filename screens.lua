@@ -132,6 +132,30 @@ function screens.playScreen.render(display)
                 _color:fromString(entity:getBackground()))
         end
     end
+
+	-- Get the messages in the player's queue and render them
+	local messages = _player:getMessages()
+	local messageY = 1
+	for i = 1, #messages do
+		-- Draw each message, adding the number of lines
+		display:write(
+			 messages[i],
+			1, 
+			messageY,
+			_color:fromString('white'),
+			_color:fromString('black')
+		)
+		messageY = messageY + 1
+	end
+     
+	-- Render player HP 
+	display:write(
+		string.format('HP: %i/%i ', _player:getHp(), _player:getMaxHp()),	
+		1, 
+		screenHeight + 1,
+		_color:fromString('white'),
+		_color:fromString('black')
+	)
 end
 
 
