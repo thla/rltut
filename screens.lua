@@ -1,9 +1,9 @@
 local rot=require 'lib/rotLove/rotLove/rotLove'
 local game=require 'game'
-local Tile=require 'Tile'
 local Map=require 'Map'
 local Entity=require 'Entity'
 local entities=require 'entities'
+local Builder=require 'Builder'
 
 
 local screens = {}
@@ -40,51 +40,29 @@ end
 screens.playScreen = {}
 
 function screens.playScreen.enter()
-    if arg[#arg] == "-debug" then require("mobdebug").off() end
-
-    local map = {}
-    -- Create a map based on our size parameters
-    local mapWidth = 100
-    local mapHeight = 48
-    for x = 1, mapWidth do
-        map[x] = {}
-        for y = 1, mapHeight do
-            map[x][y] = Tile.nullTile
-        end
-    end
-    -- Setup the map generator
-    local generator = rot.Map.Cellular:new(mapWidth, mapHeight)
-    generator:randomize(0.5)
-    local totalIterations = 2
-    -- Iteratively smoothen the map
-    for i = 0, totalIterations - 1 do
-        generator:create()
-    end
-    -- Smoothen it one last time and then update our map
-    generator:create(function(x,y,v)
-        if v == 1 then
-            map[x][y] = Tile.floorTile
-        else
-            map[x][y] = Tile.wallTile
-        end
-    end)
-    if arg[#arg] == "-debug" then require("mobdebug").on() end
+	-- Create a map based on our size parameters
+	local width = 100
+	local height = 48
+	local depth = 6
+	-- Create our map from the tiles and player
+	local builder = Builder:new(width, height, depth)
     -- Create our player and set the position
     _player = Entity:new(entities.PlayerTemplate)
     -- Create our map from the tiles
-    _map = Map:new(map, _player)
+    _map = Map:new(builder:getTiles(), _player)
     -- Start the map's engine
     _map:getEngine():start()
 end
 
-function screens.playScreen.move(dX, dY)
+function screens.playScreen.move(dX, dY, dZ)
     -- Positive dX means movement right
     -- negative means movement left
     -- 0 means none
     local newX = _player:getX() + dX
     local newY = _player:getY() + dY
+    local newZ = _player:getZ() + dZ
     -- Try to move to the new cell
-    _player:tryMove(newX, newY, _map)
+    _player:tryMove(newX, newY, newZ, _map)
  end
 
 function screens.playScreen.exit()
@@ -108,7 +86,7 @@ function screens.playScreen.render(display)
         for y = topLeftY + 1, topLeftY + screenHeight do
             -- Fetch the glyph for the tile and render it to the screen
             -- at the offset position.
-            local tile = _map:getTile(x, y)
+            local tile = _map:getTile(x, y, _player:getZ())
             display:write(
                 tile:getChar(),
                 x - topLeftX,
@@ -123,7 +101,8 @@ function screens.playScreen.render(display)
         -- Only render the entitiy if they would show up on the screen
         if entity:getX() > topLeftX and entity:getY() > topLeftY and
             entity:getX() <= topLeftX + screenWidth and
-            entity:getY() <= topLeftY + screenHeight then
+            entity:getY() <= topLeftY + screenHeight and
+            entity:getZ() == _player:getZ() then
             display:write(
                 entity:getChar(),
                 entity:getX() - topLeftX,
@@ -167,17 +146,23 @@ function screens.playScreen.handleInput(key, isrepeat)
             game.switchScreen(screens.winScreen)
         elseif key == "escape" then
             game.switchScreen(screens.loseScreen)
+        elseif key == "<" then
+          if love.keyboard.isDown("lshift", "rshift") then
+            screens.playScreen.move(0, 0, 1)
+          else
+            screens.playScreen.move(0, 0, -1)
+          end
         end
     end
     -- Movement
     if key == "left" then
-        screens.playScreen.move(-1, 0)
+        screens.playScreen.move(-1, 0, 0)
     elseif key == "right" then
-        screens.playScreen.move(1, 0)
+        screens.playScreen.move(1, 0, 0)
     elseif key == "up" then
-        screens.playScreen.move(0, -1)
+        screens.playScreen.move(0, -1, 0)
     elseif key == "down" then
-        screens.playScreen.move(0, 1)
+        screens.playScreen.move(0, 1, 0)
     end
     -- Unlock the engine
     _map:getEngine():unlock()

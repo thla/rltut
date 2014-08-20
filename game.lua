@@ -8,6 +8,7 @@ local _screenWidth = 80
 local _screenHeight = 24
 
 function game.init()
+	math.randomseed(os.time()) 
     -- Any necessary initialization will go here.
     _display = rot.Display(_screenWidth, _screenHeight + 1)
 end

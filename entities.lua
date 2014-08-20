@@ -1,15 +1,32 @@
 local game=require 'game'
 local Entity=require 'Entity'
+local Tile=require 'Tile'
 local mixins = {}
 
 -- Define our Moveable mixin
 mixins.movable = {
     name = 'Moveable',
-    tryMove = function(self, x, y, map)
-        local tile = map:getTile(x, y)
-        local target = map:getEntityAt(x, y)
+    tryMove = function(self, x, y, z, map)
+        local map = self:getMap()
+        local tile = map:getTile(x, y, self:getZ())
+        local target = map:getEntityAt(x, y, self:getZ())
+        -- If our z level changed, check if we are on stair
+        if z < self:getZ() then
+            if tile ~= Tile.stairsUpTile then
+                mixins.sendMessage(self, "You can't go up here!")
+            else
+            	mixins.sendMessage(self, "You ascend to level %d!", {z})
+                self:setPosition(x, y, z)
+            end
+        elseif z > self:getZ() then
+            if tile ~= Tile.stairsDownTile then
+                mixins.sendMessage(self, "You can't go down here!")
+            else
+                self:setPosition(x, y, z)
+                mixins.sendMessage(self, "You descend to level %d!", {z})
+            end  
         -- If an entity was present at the tile
-        if target ~= nil then
+        elseif target ~= nil then
             -- If we are an attacker, try to attack
             -- the target
             if self:hasMixin('Attacker') then
@@ -24,13 +41,12 @@ mixins.movable = {
         --and if so simply walk onto it
         elseif tile:isWalkable() then
             -- Update the entity's position
-            self._x = x
-            self._y = y
+            self:setPosition(x, y, z);
             return true
         elseif tile:isDiggable() then
             -- Check if the tile is diggable, and
             -- if so try to dig it
-            map:dig(x, y)
+            map:dig(x, y, z)
             return true
         end
         return false
@@ -73,21 +89,22 @@ mixins.FungusActor = {
                     -- Check if we can actually spawn at that location, and if so
                     -- then we grow!
                     if self:getMap():isEmptyFloor(self:getX() + xOffset,
-                                                self:getY() + yOffset) then
+                                                self:getY() + yOffset,
+                                                self:getZ() ) then
                         local entity = Entity:new(mixins.FungusTemplate)
-                        entity:setX(self:getX() + xOffset)
-                        entity:setY(self:getY() + yOffset)
+                        entity:setPosition(self:getX() + xOffset,
+                        		self:getY() + yOffset, self:getZ())
                         self:getMap():addEntity(entity)
                         self._growthsRemaining = self._growthsRemaining - 1
                         
                         -- Send a message nearby!
                         mixins.sendMessageNearby(self:getMap(),
-                            entity:getX(), entity:getY(),
+                            entity:getX(), entity:getY(), entity:getZ(), 
                             'The fungus is spreading!')
                         
                     end
                 end
-             end
+            end
         end
     end
 }
@@ -180,14 +197,14 @@ mixins.sendMessage = function(recipient, message, args)
     end
 end
 
-mixins.sendMessageNearby = function(map, centerX, centerY, message, args) 
+mixins.sendMessageNearby = function(map, centerX, centerY, centerZ, message, args) 
     -- If args were passed, then we format the message, else
     -- no formatting is necessary
     if args ~= nil then
         message = message:format(unpack(args))
     end
     -- Get the nearby entities
-    entities = map:getEntitiesWithinRadius(centerX, centerY, 5)
+    entities = map:getEntitiesWithinRadius(centerX, centerY,centerZ, 5)
     -- Iterate through nearby entities, sending the message if
     -- they can receive it.
     for i = 1, #entities do
