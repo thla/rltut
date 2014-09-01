@@ -24,7 +24,7 @@ mixins.movable = {
             else
                 self:setPosition(x, y, z)
                 mixins.sendMessage(self, "You descend to level %d!", {z})
-            end  
+            end
         -- If an entity was present at the tile
         elseif target ~= nil then
             -- If we are an attacker, try to attack
@@ -96,12 +96,12 @@ mixins.FungusActor = {
                         		self:getY() + yOffset, self:getZ())
                         self:getMap():addEntity(entity)
                         self._growthsRemaining = self._growthsRemaining - 1
-                        
+
                         -- Send a message nearby!
                         mixins.sendMessageNearby(self:getMap(),
-                            entity:getX(), entity:getY(), entity:getZ(), 
+                            entity:getX(), entity:getY(), entity:getZ(),
                             'The fungus is spreading!')
-                        
+
                     end
                 end
             end
@@ -143,10 +143,10 @@ mixins.Destructible = {
 mixins.Attacker = {
     name = 'Attacker',
     groupName = 'Attacker',
-    init = function(self, template) 
+    init = function(self, template)
         self._attackValue = template.attackValue or 1
     end,
-    getAttackValue = function(self) 
+    getAttackValue = function(self)
         return self._attackValue
     end,
     attack = function(self, target)
@@ -157,35 +157,47 @@ mixins.Attacker = {
         	local defense = target.getDefenseValue(self)
         	local max = math.max(0, attack - defense)
           local damage = math.random(1,max)
-        	
-        	mixins.sendMessage(self, 'You strike the %s for %i damage!', 
+
+        	mixins.sendMessage(self, 'You strike the %s for %i damage!',
         		{target:getName(), damage})
-        	mixins.sendMessage(target, 'The %s strikes you for %i damage!',  
+        	mixins.sendMessage(target, 'The %s strikes you for %i damage!',
         		{self:getName(), damage})
-        	
+
             target:takeDamage(self, damage)
         end
     end
-}      
+}
+
+-- This signifies our entity posseses a field of vision of a given radius.
+mixins.Sight = {
+    name = 'Sight',
+    groupName = 'Sight',
+    init = function(self, template)
+        self._sightRadius = template.sightRadius or 5
+    end,
+    getSightRadius = function(self)
+        return self._sightRadius
+    end
+}
 
 mixins.MessageRecipient = {
     name = 'MessageRecipient',
-    init = function(self, template) 
+    init = function(self, template)
         self._messages = {}
     end,
-    receiveMessage = function(self, message) 
+    receiveMessage = function(self, message)
         table.insert(self._messages, message)
     end,
-    getMessages = function(self) 
+    getMessages = function(self)
         return self._messages
     end,
-    clearMessages = function(self) 
+    clearMessages = function(self)
         self._messages = {}
     end
 }
 
-mixins.sendMessage = function(recipient, message, args) 
-    -- Make sure the recipient can receive the message 
+mixins.sendMessage = function(recipient, message, args)
+    -- Make sure the recipient can receive the message
     -- before doing any work.
     if recipient:hasMixin(mixins.MessageRecipient) then
         -- If args were passed, then we format the message, else
@@ -197,7 +209,7 @@ mixins.sendMessage = function(recipient, message, args)
     end
 end
 
-mixins.sendMessageNearby = function(map, centerX, centerY, centerZ, message, args) 
+mixins.sendMessageNearby = function(map, centerX, centerY, centerZ, message, args)
     -- If args were passed, then we format the message, else
     -- no formatting is necessary
     if args ~= nil then
@@ -218,17 +230,19 @@ end
 mixins.PlayerTemplate = {
     character= '@',
     foreground= 'white',
-	maxHp= 40,
+    maxHp= 40,
     attackValue= 10,
-    mixins= { mixins.movable, 
-    		mixins.PlayerActor, 
-    		mixins.Attacker, 
-    		mixins.Destructible,
-    		mixins.MessageRecipient}
+    sightRadius= 6,
+    mixins= { mixins.movable,
+            mixins.PlayerActor,
+            mixins.Attacker,
+            mixins.Destructible,
+            mixins.Sight,
+            mixins.MessageRecipient}
 }
 
 mixins.FungusTemplate = {
-	name = 'fungus',
+    name = 'fungus',
     character ='P',
     foreground = 'green',
     maxHp=10,

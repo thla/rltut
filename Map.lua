@@ -11,6 +11,9 @@ function Map:initialize(tiles, player)
   self._depth = #tiles
   self._width = #tiles[1]
   self._height = #tiles[1][1]
+  -- setup the field of visions
+  self._fov = {}
+  self:setupFov()
   -- create a list which will hold the entities
   self._entities = {}
   -- create the engine and scheduler
@@ -89,7 +92,7 @@ end
 function Map:addEntity(entity)
     -- Make sure the entity's position is within bounds
     if entity:getX() <= 0 or entity:getX() > self._width or
-        entity:getY() <= 0 or entity:getY() > self._height or 
+        entity:getY() <= 0 or entity:getY() > self._height or
         entity:getZ() <= 0 or entity:getZ() > self._depth then
         error('Adding entity out of bounds.')
     end
@@ -141,7 +144,7 @@ function Map:getEntitiesWithinRadius(centerX, centerY, centerZ, radius)
     -- Iterate through our entities, adding any which are within the bounds
     for i = 1, #self._entities do
         if (self._entities[i]:getX() >= leftX and
-            self._entities[i]:getX() <= rightX and 
+            self._entities[i]:getX() <= rightX and
             self._entities[i]:getY() >= topY and
             self._entities[i]:getY() <= bottomY and
             self._entities[i]:getZ() == centerZ) then
@@ -149,6 +152,20 @@ function Map:getEntitiesWithinRadius(centerX, centerY, centerZ, radius)
         end
     end
     return results
-end	
+end
+
+function Map:setupFov()
+  for i=1,self._depth do
+    table.insert(self._fov, rot.FOV.Precise:new(
+        function(t, x, y)
+          return not self:getTile(x, y, i):isBlockingLight()
+        end
+      ))
+  end
+end
+
+function Map:getFov(depth)
+  return self._fov[depth]
+end
 
 return Map

@@ -6,19 +6,24 @@ local Tile = class('Tile', Glyph)
 function Tile:initialize(properties)
   Glyph.initialize(self, properties)
   properties = properties or {}
-  self._isWalkable = properties.isWalkable or false
-  self._isDiggable = properties.isDiggable or false
+  self._walkable = properties.isWalkable or false
+  self._diggable = properties.isDiggable or false
+  if properties.blocksLight == nil then self._blocksLight = true else self._blocksLight = properties.blocksLight end
 end
 
 function Tile:isWalkable()
-  return self._isWalkable
+  return self._walkable
 end
 
 function Tile:isDiggable()
-  return self._isDiggable
+  return self._diggable
 end
 
-function Tile.static.getNeighborPositions(x, y) 
+function Tile:isBlockingLight()
+  return self._blocksLight
+end
+
+function Tile.static.getNeighborPositions(x, y)
     local tiles = {};
     -- Generate all possible offsets
     for dX = -1, 1 do
@@ -34,7 +39,7 @@ end
 
 function shuffled(tab)
 	local n, order, res = #tab, {}, {}
-	 
+
 	for i=1,n do order[i] = { rnd = math.random(), idx = i } end
 	table.sort(order, function(a,b) return a.rnd < b.rnd end)
 	for i=1,n do res[i] = tab[order[i].idx] end
@@ -45,7 +50,8 @@ Tile.static.nullTile = Tile:new()
 
 Tile.static.floorTile = Tile:new({
     character = '.',
-    isWalkable = true
+    isWalkable = true,
+    blocksLight = false
     })
 
 Tile.static.wallTile = Tile:new({
@@ -57,13 +63,15 @@ Tile.static.wallTile = Tile:new({
 Tile.static.stairsUpTile = Tile:new({
     character = '<',
     foreground = 'white',
-    isWalkable = true
+    isWalkable = true,
+    blocksLight = false
     })
 
 Tile.static.stairsDownTile = Tile:new({
     character = '>',
     foreground = 'white',
-    isWalkable = true
+    isWalkable = true,
+    blocksLight = false
 })
 
 return Tile

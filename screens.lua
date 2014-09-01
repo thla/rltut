@@ -81,18 +81,31 @@ function screens.playScreen.render(display)
     -- Make sure we still have enough space to fit an entire game screen
     topLeftY = math.min(topLeftY, _map:getHeight() - screenHeight)
 
+    -- This object will keep track of all visible map cells
+    local visibleCells = {}
+    -- Find all visible cells and update the object
+    _map:getFov(_player:getZ()):compute(
+        _player:getX(), _player:getY(),
+        _player:getSightRadius(),
+        function(x, y, radius, visibility)
+            visibleCells[x .. "," .. y] = true
+        end
+        )
+
     -- Iterate through all map cells
     for x = topLeftX + 1, topLeftX + screenWidth do
         for y = topLeftY + 1, topLeftY + screenHeight do
-            -- Fetch the glyph for the tile and render it to the screen
-            -- at the offset position.
-            local tile = _map:getTile(x, y, _player:getZ())
-            display:write(
-                tile:getChar(),
-                x - topLeftX,
-                y - topLeftY,
-                _color:fromString(tile:getForeground()),
-                _color:fromString(tile:getBackground()))
+            if visibleCells[x .. "," .. y] then
+                -- Fetch the glyph for the tile and render it to the screen
+                -- at the offset position.
+                local tile = _map:getTile(x, y, _player:getZ())
+                display:write(
+                    tile:getChar(),
+                    x - topLeftX,
+                    y - topLeftY,
+                    _color:fromString(tile:getForeground()),
+                    _color:fromString(tile:getBackground()))
+            end
         end
     end
 
@@ -102,7 +115,8 @@ function screens.playScreen.render(display)
         if entity:getX() > topLeftX and entity:getY() > topLeftY and
             entity:getX() <= topLeftX + screenWidth and
             entity:getY() <= topLeftY + screenHeight and
-            entity:getZ() == _player:getZ() then
+            entity:getZ() == _player:getZ() and
+            visibleCells[entity:getX() .. ',' .. entity:getY()] then
             display:write(
                 entity:getChar(),
                 entity:getX() - topLeftX,
@@ -119,18 +133,18 @@ function screens.playScreen.render(display)
 		-- Draw each message, adding the number of lines
 		display:write(
 			 messages[i],
-			1, 
+			1,
 			messageY,
 			_color:fromString('white'),
 			_color:fromString('black')
 		)
 		messageY = messageY + 1
 	end
-     
-	-- Render player HP 
+
+	-- Render player HP
 	display:write(
-		string.format('HP: %i/%i ', _player:getHp(), _player:getMaxHp()),	
-		1, 
+		string.format('HP: %i/%i ', _player:getHp(), _player:getMaxHp()),
+		1,
 		screenHeight + 1,
 		_color:fromString('white'),
 		_color:fromString('black')
