@@ -27,6 +27,9 @@ function Map:initialize(tiles, player)
 		self:addEntityAtRandomPosition(Entity:new(entities.FungusTemplate), z)
 	  end
   end
+  -- Setup the explored array
+  self._explored = {}
+  self:_setupExploredArray()
 end
 
 function Map:getEngine()
@@ -166,6 +169,34 @@ end
 
 function Map:getFov(depth)
   return self._fov[depth]
+end
+
+function Map:setExplored (x, y, z, state)
+    -- Only update if the tile is within bounds
+    if self:getTile(x, y, z) ~= Tile.nullTile then
+        self._explored[z][x][y] = state
+    end
+end
+
+function Map:isExplored (x, y, z)
+    -- Only return the value if within bounds
+    if self:getTile(x, y, z) ~= Tile.nullTile then
+        return self._explored[z][x][y]
+    else
+        return false
+    end
+end
+
+function Map:_setupExploredArray ()
+  for z=1,self._depth do
+    self._explored[z] = {}
+    for x=1,self._width do
+      self._explored[z][x] = {}
+      for y=1,self._height do
+        self._explored[z][x][y] = false
+      end
+    end
+  end
 end
 
 return Map

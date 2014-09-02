@@ -89,13 +89,15 @@ function screens.playScreen.render(display)
         _player:getSightRadius(),
         function(x, y, radius, visibility)
             visibleCells[x .. "," .. y] = true
+            -- Mark cell as explored
+            _map:setExplored(x, y, _player:getZ(), true);
         end
         )
 
     -- Iterate through all map cells
     for x = topLeftX + 1, topLeftX + screenWidth do
         for y = topLeftY + 1, topLeftY + screenHeight do
-            if visibleCells[x .. "," .. y] then
+            if _map:isExplored(x, y, _player:getZ()) then
                 -- Fetch the glyph for the tile and render it to the screen
                 -- at the offset position.
                 local tile = _map:getTile(x, y, _player:getZ())
@@ -103,7 +105,7 @@ function screens.playScreen.render(display)
                     tile:getChar(),
                     x - topLeftX,
                     y - topLeftY,
-                    _color:fromString(tile:getForeground()),
+                    visibleCells[x .. "," .. y] and _color:fromString(tile:getForeground()) or {r=169,g=169,b=169,a=255},
                     _color:fromString(tile:getBackground()))
             end
         end
