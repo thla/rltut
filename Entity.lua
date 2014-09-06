@@ -1,10 +1,14 @@
 local class=require 'middleclass'
 local Glyph=require 'Glyph'
+local Tile=require 'Tile'
 
 local Entity = class('Entity', Glyph)
 
-function Entity:initialize(properties)
+local modmixins
+
+function Entity:initialize(properties, modmix)
     Glyph.initialize(self, properties)
+    modmixins = modmix
     properties = properties or {}
     -- Instantiate properties to default if they weren't passed
     self._name = properties.name or ' '
@@ -64,7 +68,7 @@ function Entity:setY(y)
   self._y = y
 end
 
-function Entity:setZ(z) 
+function Entity:setZ(z)
     self._z = z
 end
 
@@ -93,9 +97,69 @@ function Entity:getMap()
 end
 
 function Entity:setPosition(x,y,z)
+    local oldX = self._x
+    local oldY = self._y
+    local oldZ = self._z
+    -- Update position
     self._x = x
     self._y = y
     self._z = z
+    -- If the entity is on a map, notify the map that the entity has moved.
+    if self._map ~= nil then
+        self._map:updateEntityPosition(self, oldX, oldY, oldZ)
+    end
+end
+
+function Entity:tryMove(x, y, z, map)
+    local map = self:getMap()
+    local tile = map:getTile(x, y, self:getZ())
+    local target = map:getEntityAt(x, y, self:getZ())
+    -- If our z level changed, check if we are on stair
+    if z < self:getZ() then
+        if tile ~= Tile.stairsUpTile then
+            modmixins.sendMessage(self, "You can't go up here!")
+        else
+            modmixins.sendMessage(self, "You ascend to level %d!", {z})
+            self:setPosition(x, y, z)
+        end
+    elseif z > self:getZ() then
+        if tile ~= Tile.stairsDownTile then
+            modmixins.sendMessage(self, "You can't go down here!")
+        else
+            self:setPosition(x, y, z)
+            modmixins.sendMessage(self, "You descend to level %d!", {z})
+        end
+    -- If an entity was present at the tile
+    elseif target ~= nil then
+        -- An entity can only attack if the entity has the Attacker mixin and
+        -- either the entity or the target is the player.
+        if self:hasMixin('Attacker') and
+          (self:hasMixin(modmixins.PlayerActor) or
+          target:hasMixin(modmixins.PlayerActor)) then
+            self:attack(target)
+            return true
+        else
+            -- If not nothing we can do, but we can't
+            -- move to the tile
+            return false
+        end
+    -- Check if we can walk on the tile
+    --and if so simply walk onto it
+    elseif tile:isWalkable() then
+        -- Update the entity's position
+        self:setPosition(x, y, z);
+        return true
+    elseif tile:isDiggable() then
+        -- Only dig if the the entity is the player
+        if self:hasMixin(modmixins.PlayerActor) then
+            map:dig(x, y, z)
+            return true
+        end
+        -- If not nothing we can do, but we can't
+        -- move to the tile
+        return false
+    end
+    return false
 end
 
 return Entity

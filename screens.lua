@@ -12,6 +12,11 @@ local screens = {}
 local _color = rot.Color()
 local _map = {}
 local _player
+local _gameEnded = false
+
+function setGameEnded (gameEnded)
+  _gameEnded = gameEnded
+end
 
 -- Define our initial start screen
 screens.startScreen = {}
@@ -47,7 +52,8 @@ function screens.playScreen.enter()
 	-- Create our map from the tiles and player
 	local builder = Builder:new(width, height, depth)
     -- Create our player and set the position
-    _player = Entity:new(entities.PlayerTemplate)
+    _player = Entity:new(entities.PlayerTemplate, entities)
+    _player:setEndFunction(setGameEnded)
     -- Create our map from the tiles
     _map = Map:new(builder:getTiles(), _player)
     -- Start the map's engine
@@ -112,7 +118,7 @@ function screens.playScreen.render(display)
     end
 
     -- Render the entities
-    for _, entity in ipairs(_map:getEntities()) do
+    for _, entity in pairs(_map:getEntities()) do
         -- Only render the entitiy if they would show up on the screen
         if entity:getX() > topLeftX and entity:getY() > topLeftY and
             entity:getX() <= topLeftX + screenWidth and
@@ -155,6 +161,14 @@ end
 
 
 function screens.playScreen.handleInput(key, isrepeat)
+    -- If the game is over, enter will bring the user to the losing screen.
+    if _gameEnded then
+        if key == "return" then
+            game.switchScreen(screens.loseScreen)
+        end
+        -- Return to make sure the user can't still play
+        return
+    end
     -- If enter is pressed, go to the win screen
     -- If escape is pressed, go to lose screen
     if not isrepeat then
@@ -230,6 +244,5 @@ end
 function screens.loseScreen.handleInput(key, isrepeat)
     -- Nothing to do here
 end
-
 
 return screens

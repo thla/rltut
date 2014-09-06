@@ -1,63 +1,23 @@
 local game=require 'game'
-local Entity=require 'Entity'
 local Tile=require 'Tile'
-local mixins = {}
+local Entity=require 'Entity'
 
--- Define our Moveable mixin
-mixins.movable = {
-    name = 'Moveable',
-    tryMove = function(self, x, y, z, map)
-        local map = self:getMap()
-        local tile = map:getTile(x, y, self:getZ())
-        local target = map:getEntityAt(x, y, self:getZ())
-        -- If our z level changed, check if we are on stair
-        if z < self:getZ() then
-            if tile ~= Tile.stairsUpTile then
-                mixins.sendMessage(self, "You can't go up here!")
-            else
-            	mixins.sendMessage(self, "You ascend to level %d!", {z})
-                self:setPosition(x, y, z)
-            end
-        elseif z > self:getZ() then
-            if tile ~= Tile.stairsDownTile then
-                mixins.sendMessage(self, "You can't go down here!")
-            else
-                self:setPosition(x, y, z)
-                mixins.sendMessage(self, "You descend to level %d!", {z})
-            end
-        -- If an entity was present at the tile
-        elseif target ~= nil then
-            -- If we are an attacker, try to attack
-            -- the target
-            if self:hasMixin('Attacker') then
-                self:attack(target)
-                return true
-            else
-                -- If not nothing we can do, but we can't
-                -- move to the tile
-                return false
-            end
-        -- Check if we can walk on the tile
-        --and if so simply walk onto it
-        elseif tile:isWalkable() then
-            -- Update the entity's position
-            self:setPosition(x, y, z);
-            return true
-        elseif tile:isDiggable() then
-            -- Check if the tile is diggable, and
-            -- if so try to dig it
-            map:dig(x, y, z)
-            return true
-        end
-        return false
-    end
-}
+local mixins = {}
 
 -- Main player's actor mixin
 mixins.PlayerActor = {
     name = 'PlayerActor',
     groupName = 'Actor',
+    setEndFunction = function(self, endfunc)
+        self._endfunc = endfunc
+    end,
     act = function(self)
+        -- Detect if the game is over
+        if self:getHp() < 1 then
+            self._endfunc(true)
+            -- Send a last message to the player
+            mixins.sendMessage(self, 'You have died... Press [Enter] to continue!')
+        end
         -- Re-render the screen
         game.refresh()
         -- Lock the engine and wait asynchronously
@@ -91,7 +51,7 @@ mixins.FungusActor = {
                     if self:getMap():isEmptyFloor(self:getX() + xOffset,
                                                 self:getY() + yOffset,
                                                 self:getZ() ) then
-                        local entity = Entity:new(mixins.FungusTemplate)
+                        local entity = Entity:new(mixins.FungusTemplate, mixins)
                         entity:setPosition(self:getX() + xOffset,
                         		self:getY() + yOffset, self:getZ())
                         self:getMap():addEntity(entity)
@@ -134,8 +94,12 @@ mixins.Destructible = {
         -- If have 0 or less HP, then remove ourseles from the map
         if self._hp <= 0 then
             mixins.sendMessage(attacker, 'You kill the %s!', {self:getName()});
-            mixins.sendMessage(self, 'You die!');
-            self._map:removeEntity(self)
+            -- Check if the player died, and if so call their act method to prompt the user.
+            if self:hasMixin(mixins.PlayerActor) then
+                self:act()
+            else
+                self._map:removeEntity(self)
+            end
         end
     end
 }
@@ -196,6 +160,19 @@ mixins.MessageRecipient = {
     end
 }
 
+mixins.WanderActor = {
+    name = 'WanderActor',
+    groupName = 'Actor',
+    act = function(self)
+        -- Flip coin to determine if moving by 1 in the positive or negative direction
+        local xOffset = math.random(-1,1)
+        local yOffset = math.random(-1,1)
+        if xOffset ~= 0 or yOffset ~= 0 then
+            self:tryMove(self:getX() + xOffset, self:getY() + yOffset, self:getZ())
+        end
+    end
+}
+
 mixins.sendMessage = function(recipient, message, args)
     -- Make sure the recipient can receive the message
     -- before doing any work.
@@ -216,7 +193,7 @@ mixins.sendMessageNearby = function(map, centerX, centerY, centerZ, message, arg
         message = message:format(unpack(args))
     end
     -- Get the nearby entities
-    entities = map:getEntitiesWithinRadius(centerX, centerY,centerZ, 5)
+    local entities = map:getEntitiesWithinRadius(centerX, centerY,centerZ, 5)
     -- Iterate through nearby entities, sending the message if
     -- they can receive it.
     for i = 1, #entities do
@@ -233,7 +210,7 @@ mixins.PlayerTemplate = {
     maxHp= 40,
     attackValue= 10,
     sightRadius= 6,
-    mixins= { mixins.movable,
+    mixins= {
             mixins.PlayerActor,
             mixins.Attacker,
             mixins.Destructible,
@@ -247,6 +224,26 @@ mixins.FungusTemplate = {
     foreground = 'green',
     maxHp=10,
     mixins = {mixins.FungusActor, mixins.Destructible}
+}
+
+mixins.BatTemplate = {
+    name = 'bat',
+    character = 'B',
+    foreground = 'white',
+    maxHp = 5,
+    attackValue = 4,
+    mixins = {mixins.WanderActor,
+             mixins.Attacker, mixins.Destructible}
+}
+
+mixins.NewtTemplate = {
+    name = 'newt',
+    character = 'X',
+    foreground = 'yellow',
+    maxHp = 3,
+    attackValue = 2,
+    mixins = {mixins.WanderActor,
+             mixins.Attacker, mixins.Destructible}
 }
 
 return mixins
